@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <meta charset="UTF-8">
+   <title>桌面时钟</title>
+   <meta name="keywords" content="桌面时钟,数字时钟,夜间模式,天气,日期" />
+   <meta name="description" content="一款简洁的桌面时钟程序，支持PWA，支持夜间模式，支持天气，日期。" />
+   <meta content="telephone=no" name="format-detection">
+   <meta content="black" name="apple-mobile-web-app-status-bar-style">
+   <meta name="viewport" content="width=750,minimum-scale=0.2,maximum-scale=2,user-scalable=no" />
+   <!-- <link rel="icon" type="image/x-icon" href="images/icon.ico" /> -->
+   <link rel="stylesheet" href="https://web.lieme.cn/common/css/base.css">
+   <link rel="stylesheet" href="./clock.css">
+   <script src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+   <script src="./vue.min.js"></script>
+   <script type="text/javascript">
+      //为页面html动态设置font-size值
+      (function (doc, win) {
+         var docEl = doc.documentElement,
+            resizeEvt = 'orientationchange' in window ? 'orientationchange' : 'resize',
+            recalc = function () {
+               var clientWidth = docEl.clientWidth;
+               if (!clientWidth) return;
+               docEl.style.fontSize = clientWidth / 7.5 + 'px';
+               //等价于clientWidth / 750 * 100 + 'px';
+            };
+         if (!doc.addEventListener) return;
+         win.addEventListener(resizeEvt, recalc, false); //resize
+         doc.addEventListener('DOMContentLoaded', recalc, false); //reload
+      })(document, window);
+   </script>
+</head>
+
+<body>
+   <div class="clockBody" :class="style ? 'night' : ''" id="clock">
+      <div class="weather" v-if="weather">
+         {{weather}}
+      </div>
+      <div class="clock">
+         <div class="hour">{{hour}}</div>
+         <div class="sep">:</div>
+         <div class="min">{{min}}</div>
+         <div class="sec">{{sec}}</div>
+      </div>
+      <div class="info">
+         <div class="date">{{date}}</div>
+      </div>
+   </div>
+   <script>
+      var clock = new Vue({
+         el: '#clock',
+         data: {
+            time: '',
+            hour: '',
+            min: '',
+            sec: '',
+            date: '',
+            style: false,
+            weather: ''
+         },
+         created() {
+            var timerID = setInterval(this.updateTime, 1000);
+            this.updateTime();
+            this.getWeather()
+         },
+         methods: {
+            updateTime() {
+               var week = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+               var cd = new Date();
+               this.hour = this.zeroPadding(cd.getHours(), 2)
+               if (this.zeroPadding(cd.getHours(), 2) > 22 || this.zeroPadding(cd.getHours(), 2) < 5) {
+                  this.style = true
+               } else {
+                  this.style = false
+               }
+               this.min = this.zeroPadding(cd.getMinutes(), 2)
+               this.sec = this.zeroPadding(cd.getSeconds(), 2)
+               this.date = this.zeroPadding(cd.getFullYear(), 4) + '-' + this.zeroPadding(cd.getMonth() + 1, 2) +
+                  '-' +
+                  this.zeroPadding(cd
+                     .getDate(), 2) + ' ' + week[cd.getDay()];
+            },
+            zeroPadding(num, digit) {
+               var zero = '';
+               for (var i = 0; i < digit; i++) {
+                  zero += '0';
+               }
+               return (zero + num).slice(-digit);
+            },
+            getWeather() {
+               let _this = this;
+               $.ajax({
+                  type: 'GET',
+                  dataType: 'jsonp', // 数据类型配置成jsonp
+                  jsonp: "callback", //配置jsonp随机码标签,在服务器代码部分需要用到他来拼接一个json的js对象
+                  url: 'http://v.juhe.cn/weather/index', //服务路径
+                  async: false,
+                  data: {
+                     "cityname": '苏州',
+                     "type": "",
+                     "format": "",
+                     "key": "", // 填写自己的聚合数据key
+                  },
+                  success: function (res) {
+                     if (res.resultcode == 200) {
+                        let today = res.result.today;
+                        _this.weather = `苏州 今天 ${today.weather}，气温${today.temperature}`
+                     } else {
+                        alert('服务器异常！');
+                     }
+                  },
+                  error: function () {
+                     alert('服务器异常！');
+                  }
+               });
+            }
+         }
+      });
+   </script>
+</body>
+
+</html>
